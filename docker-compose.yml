@@ -1,0 +1,60 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: auth_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password
+      POSTGRES_DB: auth_db
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - auth_network
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: auth_server
+    restart: always
+    depends_on:
+      - postgres
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - NODE_ENV=development
+      - JWT_SECRET=your_jwt_secret_key_here
+      - JWT_EXPIRY=15m
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=auth_db
+      - DB_USER=auth_user
+      - DB_PASSWORD=auth_password
+    networks:
+      - auth_network
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: auth_client
+    restart: always
+    depends_on:
+      - server
+    ports:
+      - "80:80"
+    networks:
+      - auth_network
+
+volumes:
+  postgres_data:
+
+networks:
+  auth_network:
+    driver: bridge
