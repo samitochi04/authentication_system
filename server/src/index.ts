@@ -16,7 +16,9 @@ const PORT = process.env.PORT || 8000;
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+}));
 
 // Configure CORS for both development and production
 app.use(
@@ -26,7 +28,7 @@ app.use(
   })
 );
 
-// API routes
+// API routes - defined before static files and catch-all
 app.use("/api/auth", authRoutes);
 
 // Protected route example
@@ -42,16 +44,19 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "API is running" });
 });
 
-// Serve static files from the client build directory in production
+// For production: serve static files and handle SPA routing
 if (process.env.NODE_ENV === "production") {
-  // Serve static files
+  // Serve static files from the public directory
   app.use(express.static(path.join(__dirname, "..", "public")));
-
-  // All other requests go to the React app
-  app.get("*", (req, res) => {
-    // Skip API routes
-    if (req.path.startsWith("/api")) return;
+  
+  // Handle SPA routing - IMPORTANT: This must come after API routes
+  app.get("/*", (req, res, next) => {
+    // Skip API routes - they should have been handled already
+    if (req.path.startsWith("/api")) {
+      return next();
+    }
     
+    // Send the main index.html for all client-side routes
     res.sendFile(path.join(__dirname, "..", "public", "index.html"));
   });
 }
