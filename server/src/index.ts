@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
+import path from "path";
 import authRoutes from "./routes/auth.routes";
 import { authenticate } from "./middleware/auth.middleware";
 
@@ -16,17 +17,16 @@ const PORT = process.env.PORT || 8000;
 app.use(express.json());
 app.use(cookieParser());
 app.use(helmet());
+
+// Configure CORS for both development and production
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? "https://yourdomain.com" // Replace with your production domain
-        : "http://localhost:5173", // Vite's default development port
+    origin: process.env.CORS_ORIGIN || "*", 
     credentials: true, // Allow cookies to be sent with requests
   })
 );
 
-// Routes
+// API routes
 app.use("/api/auth", authRoutes);
 
 // Protected route example
@@ -37,10 +37,24 @@ app.get("/api/protected", authenticate, (req, res) => {
   });
 });
 
-// Root route
-app.get("/", (req, res) => {
-  res.send("Authentication API is running");
+// API health check endpoint
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", message: "API is running" });
 });
+
+// Serve static files from the client build directory in production
+if (process.env.NODE_ENV === "production") {
+  // Serve static files
+  app.use(express.static(path.join(__dirname, "..", "public")));
+
+  // All other requests go to the React app
+  app.get("*", (req, res) => {
+    // Skip API routes
+    if (req.path.startsWith("/api")) return;
+    
+    res.sendFile(path.join(__dirname, "..", "public", "index.html"));
+  });
+}
 
 // Start server
 app.listen(PORT, () => {
