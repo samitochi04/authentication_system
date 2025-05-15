@@ -6,6 +6,8 @@ COPY client/package*.json ./
 RUN npm ci
 
 COPY client/ ./
+# Build with production URL
+ENV VITE_API_URL=/api
 RUN npm run build
 
 # 2. Build the server
@@ -30,14 +32,23 @@ COPY --from=server-builder /app/server/package*.json ./
 # Install only production dependencies
 RUN npm ci --omit=dev
 
-# Copy client build to public directory
+# Copy client build to public directory 
 COPY --from=client-builder /app/client/dist ./public
 
-# Update server's CORS settings to allow Railway's domain
+# Set production environment
 ENV NODE_ENV=production
+# Don't hardcode URLs in the environment
+ENV CORS_ORIGIN="*"
 
 # Expose the port Railway will use
 EXPOSE ${PORT:-8000}
 
-# Start the server
-CMD ["node", "dist/index.js"]
+# Print directory contents to debug
+CMD echo "Starting server..." && \
+    echo "Contents of /app:" && \
+    ls -la && \
+    echo "Contents of /app/public:" && \
+    ls -la public && \
+    echo "Contents of /app/dist:" && \
+    ls -la dist && \
+    node dist/index.js
