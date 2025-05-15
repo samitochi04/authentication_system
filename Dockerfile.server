@@ -4,19 +4,19 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy package.json and package-lock.json
-COPY package*.json ./
+COPY server/package*.json ./
 
 # Install dependencies
 RUN npm ci
 
 # Copy the rest of the server code
-COPY . .
+COPY server/ ./
 
 # Build TypeScript code
 RUN npm run build
 
-# Expose the API port
-EXPOSE 8000
+# Expose the API port (Railway will automatically assign PORT)
+EXPOSE ${PORT:-8000}
 
 # Command to run the application
 CMD ["node", "dist/index.js"]

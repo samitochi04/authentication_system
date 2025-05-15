@@ -18,8 +18,8 @@ services:
 
   server:
     build:
-      context: ./server
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.server
     container_name: auth_server
     restart: always
     depends_on:
@@ -28,7 +28,7 @@ services:
       - "8000:8000"
     environment:
       - PORT=8000
-      - NODE_ENV=development
+      - NODE_ENV=production
       - JWT_SECRET=your_jwt_secret_key_here
       - JWT_EXPIRY=15m
       - DB_HOST=postgres
@@ -41,14 +41,17 @@ services:
 
   client:
     build:
-      context: ./client
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.client
     container_name: auth_client
     restart: always
     depends_on:
       - server
     ports:
       - "80:80"
+    environment:
+      - PORT=80
+      - API_URL=http://server:8000
     networks:
       - auth_network
 
